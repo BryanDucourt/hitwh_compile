@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/bryandu/Develop/C/Compile/ex2/main.cpp
+iostream
+-
+sstream
+-
+utility
+-
+fstream
+/home/bryandu/Develop/C/Compile/ex2/fstream
+vector
+/home/bryandu/Develop/C/Compile/ex2/vector
+map
+/home/bryandu/Develop/C/Compile/ex2/map
+string
+/home/bryandu/Develop/C/Compile/ex2/string
+
