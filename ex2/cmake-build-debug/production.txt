@@ -1,6 +1,6 @@
 P → D S
 D → L id ; D
-D → ε
+D → e
 L → int
 L → float
 S → id = E ;
@@ -15,8 +15,8 @@ E → E + T
 E → E – T
 E → T
 T → F
-T → T1 * F
-T → T1 / F
+T → T * F
+T → T / F
 F → ( E )
 F → id
 F → digits
