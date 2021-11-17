@@ -183,7 +183,7 @@ void GenerateFirstSet(map<string,vector<string>>& firstset,const string& target,
 }
 
 void GenerateFollowSet(map<string, vector<string>>& followset, string& target){
-    
+
 }
 
 int main() {
