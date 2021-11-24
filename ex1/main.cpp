@@ -12,7 +12,8 @@ const std::map<String, int> keyword_map = {{"if",    1},
                                            {"else",  2},
                                            {"while", 3},
                                            {"int",   4},
-                                           {"float", 5}
+                                           {"float", 5},
+                                           {"digit",22}
 };
 const std::map<String, int> OP_map = {{"+", 6},
                                       {"-", 7},
@@ -29,7 +30,8 @@ const std::map<String, int> OP_map = {{"+", 6},
                                       {"!=", 18},
                                       {"==", 19},
                                       {"'", 20},
-                                      {"ID", 21}
+                                      {"id", 21},
+
 };
 
 void outputSymbol() {
@@ -45,7 +47,7 @@ void outputSymbol() {
     std::cout << "-" << "    \t" << "7" << "    \t" << "!=" << "    \t" << "18"<< std::endl;
     std::cout << "*" << "    \t" << "8" << "    \t" << "==" << "    \t" << "19"<< std::endl;
     std::cout << "/" << "    \t" << "9" << "    \t" << "'" << "    \t" << "20"<< std::endl;
-    std::cout << ">" << "    \t" << "10" << "    \t" << "ID" << "    \t" << "21"<< std::endl;
+    std::cout << ">" << "    \t" << "10" << "    \t" << "id" << "    \t" << "21"<< std::endl;
     std::cout << "<" << "    \t" << "11" << std::endl;
     std::cout << "#################################" << std::endl;
 }
@@ -104,7 +106,7 @@ Vector<Token> scan(String target,int line) {
                     t += *it;
                     it++;
                 }
-                int id = keyword_map.at("int");
+                int id = keyword_map.at("digit");
                 Token token(id, t);
                 tempV.push_back(token);
                 t.clear();
@@ -118,7 +120,7 @@ Vector<Token> scan(String target,int line) {
                 if (keyword_map.find(t) != keyword_map.end()) {
                     id = keyword_map.at(t);
                 } else {
-                    id = OP_map.at("ID");
+                    id = OP_map.at("id");
                 }
                 Token token(id, t);
                 tempV.push_back(token);
@@ -181,5 +183,17 @@ int main() {
     std::cout << "#################################" << std::endl;
     std::cout << "token串表" << std::endl;
     tokenList.display();
+    std::ofstream ofile("token.txt");
+    Vector<std::pair<int,char*>> otplist;
+    for (auto it = tokenList.list.begin();it!=tokenList.list.end();it++){
+        ofile<<it->id<<' '<<it->token<<std::endl;
+    }
+
+    if(!ofile.is_open()){
+        std::cout<<"fail"<<std::endl;
+        exit(1);
+    }
+
+    ofile.close();
     return 0;
 }

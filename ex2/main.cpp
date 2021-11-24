@@ -6,6 +6,7 @@
 #include "map"
 #include "string"
 #include "list"
+#include "stack"
 #include "algorithm"
 
 using namespace std;
@@ -13,11 +14,38 @@ map<string, vector<string >> FirstSet;
 map<string, vector<string >> FollowSet;
 map<string, int> NonTerminalMap;
 map<string, int> TerminalMap;
-vector<map<string,pair<string ,int>>> ActionTable;
-vector<map<string,pair<string ,int>>> GotoTable;
+vector<map<string, pair<string, int>>> ActionTable;
+vector<map<string, pair<string, int>>> GotoTable;
 vector<pair<int, pair<string, int>>> cache;
+stack<int> StatusStack;
+stack<string> SymbolStack;
 int closure_cnt = 0;
-int cnt = 0;
+
+const map<int, string> keyword_map = {{1,  "if"},
+                                      {2,  "else"},
+                                      {3,  "while"},
+                                      {4,  "int"},
+                                      {5,  "float"},
+                                      {6,  "+"},
+                                      {7,  "-"},
+                                      {8,  "*"},
+                                      {9,  "/"},
+                                      {10, ">"},
+                                      {11, "<"},
+                                      {12, "="},
+                                      {13, "("},
+                                      {14, ")"},
+                                      {15, ";"},
+                                      {16, ">="},
+                                      {17, "<="},
+                                      {18, "!="},
+                                      {19, "=="},
+                                      {20, "'"},
+                                      {21, "id"},
+                                      {22,"digit"},
+                                      {23,"$"}
+};
+
 
 bool IsNonTerminal(const string &string1) {
     return (NonTerminalMap.find(string1) != NonTerminalMap.end());
@@ -27,12 +55,14 @@ struct Production {
     string V;
     vector<string> P;
 };
-bool operator == (const Production& p,const Production& q){
-    if (p.V==q.V&&p.P==q.P){
+
+bool operator==(const Production &p, const Production &q) {
+    if (p.V == q.V && p.P == q.P) {
         return true;
     }
     return false;
 }
+
 vector<string> split(const string &str) {
     vector<string> t;
     istringstream iss(str);
@@ -73,10 +103,24 @@ public:
         return (p.P == t.p.P && position_of_dot == t.position_of_dot);
     }
 
-    Item(int pod, Production production) {
+    Item(int
+         pod, Production
+         production) {
         position_of_dot = pod;
         p = std::move(production);
         len = p.P.size();
+    }
+
+    void display() {
+        cout << p.V << "->";
+        for (int i = 0; i < p.P.size(); i++) {
+            if (i == position_of_dot) {
+                cout << '.';
+            }
+            cout << p.P[i];
+        }
+        cout << endl;
+
     }
 };
 
@@ -84,12 +128,20 @@ vector<Item> Create_Item_List(vector<Production> p_list) {
     vector<Item> item_list;
     for (auto it = p_list.begin(); it != p_list.end(); it++) {
         for (int i = 0; i <= it->P.size(); i++) {
-            Item t(i, *it);
-            item_list.push_back(t);
+            if (it->P[0] != "e") {
+                Item t(i, *it);
+                item_list.push_back(t);
+            }
         }
     }
+    Production production;
+    production.V = "D";
+    production.P = {"e"};
+    Item t(0,production);
+    item_list.push_back(t);
     return item_list;
 }
+
 
 class Closure {
 public:
@@ -98,6 +150,13 @@ public:
 
     bool operator==(const Closure &tgt) const {
         return (items == tgt.items);
+    }
+
+    void display() {
+        cout << "closure" << num_of_closure << endl;
+        for (auto it = items.begin(); it != items.end(); it++) {
+            it->display();
+        }
     }
 };
 
@@ -145,10 +204,14 @@ void Go(Closure i, const string &x, vector<Item> &global, list<Closure> &closure
     if (!t.empty()) {
         Closure ii = Compute_Closure_I(++closure_cnt, t, global);
         auto it = find(closure_set.begin(), closure_set.end(), ii);
-        if (it == closure_set.end())
+        if (it == closure_set.end()) {
             closure_set.push_back(ii);
-        else closure_cnt--;
-        cache.emplace_back(i.num_of_closure, pair<string, int>(x, ii.num_of_closure));
+            cache.emplace_back(i.num_of_closure, pair<string, int>(x, ii.num_of_closure));
+        } else {
+            closure_cnt--;
+            cache.emplace_back(i.num_of_closure, pair<string,int>(x, it->num_of_closure));
+        }
+
     }
 }
 
@@ -254,38 +317,85 @@ int SearchCache(int i, const string &x) {
     return 0;
 }
 
-void GenerateAnalyzeTable(Closure &c, int no, vector<Item> &global,vector<Production>& productions) {
-    map<string, pair<string ,int>> p,q;
+void GenerateAnalyzeTable(Closure &c, int no, vector<Item> &global, vector<Production> &productions) {
+    map<string, pair<string, int>> p, q;
     ActionTable.push_back(p);
     GotoTable.push_back(q);
     for (auto it = c.items.begin(); it != c.items.end(); it++) {
+        if (it->p.V == "P") {
+            ActionTable[c.num_of_closure]["$"] = pair("acc", -1);
+        }
         if (it->position_of_dot != it->len) {
             string tmp = it->p.P[it->position_of_dot];
             int i = SearchCache(c.num_of_closure, tmp);
-            if (!IsNonTerminal(tmp)) {
-                ActionTable[c.num_of_closure][tmp] = pair("S",i);
-            } else {
-                GotoTable[c.num_of_closure][tmp] = pair("S", i);
-            }
+//            if (i!=-1) {
+                if (!IsNonTerminal(tmp)) {
+                    if (tmp == "e") {
+                        for (auto iterator = TerminalMap.begin(); iterator != TerminalMap.end(); iterator++) {
+                            auto iter = find(productions.begin(), productions.end(), it->p);
+                            pair<string, int> pair1("R", iter-productions.begin()-1);
+                            ActionTable[c.num_of_closure].insert(
+                                    pair<string, pair<string, int>>(iterator->first, pair1));
+                        }
+                    } else {
+                        ActionTable[c.num_of_closure][tmp] = pair("S", i);
+                    }
+                } else {
+                    GotoTable[c.num_of_closure][tmp] = pair("S", i);
+                }
+//            } else {
+//
+//            }
         } else {
             string tmp = it->p.V;
-            for (auto iterator = FollowSet[tmp].begin(); iterator != FollowSet[tmp].end(); iterator++){
-                auto iter = find(productions.begin(),productions.end(),it->p);
-                ActionTable[c.num_of_closure][*iterator] = pair("R",iter-productions.begin());
+            for (auto iterator = FollowSet[tmp].begin(); iterator != FollowSet[tmp].end(); iterator++) {
+                auto iter = find(productions.begin(), productions.end(), it->p);
+                ActionTable[c.num_of_closure][*iterator] = pair("R", iter - productions.begin());
             }
         }
     }
 }
 
+vector<pair<int, string>> LoadTokenList() {
+    vector<pair<int, string >> data;
+    ifstream ifile("token.txt");
+    string p;
+    while (getline(ifile, p)) {
+        vector<string> t;
+        t = split(p);
+        pair<int, string> q(atoi(t[0].c_str()), t[1]);
+        data.push_back(q);
+    }
+    data.push_back(pair<int, string>(0, "$"));
+    return data;
+
+}
+
+void Display(Production &production) {
+    cout << production.V << "->";
+    for (auto i = production.P.begin(); i != production.P.end(); i++) {
+        cout << *i;
+    }
+    cout << endl;
+}
+
 int main() {
-    ifstream file;
-    file.open("production.txt");
-    if (!file.is_open()) { cout << "error"; }
     vector<string> symbol_table;
     vector<Production> p;
     vector<Item> i;
+
+    vector<pair<int, string >> tokenlist;
+    tokenlist = LoadTokenList();
+
+    ifstream file;
+    file.open("production.txt");
+    if (!file.is_open()) {
+        cout << "error";
+        exit(0);
+    }
     p = Production_Pre_Process(&file);
     i = Create_Item_List(p);
+
     GenerateSymbolTable(symbol_table);
     for (auto it = NonTerminalMap.begin(); it != NonTerminalMap.end(); it++) {
         GenerateFirstSet(FirstSet, it->first, p);
@@ -293,7 +403,8 @@ int main() {
     for (auto it = NonTerminalMap.begin(); it != NonTerminalMap.end(); it++) {
         GenerateFollowSet(FollowSet, it->first, p);
     }
-
+    SymbolStack.push("$");
+    StatusStack.push(0);
     //计算文法G的规范LR（0）集族
     Closure i_0, i1;
     list<Item> ll = {i[0]};
@@ -305,13 +416,41 @@ int main() {
             Go(*it, *it_, i, g);
         }
     }
-
+//    for (auto it = g.begin(); it != g.end(); it++) {
+//        it->display();
+//    }
 
     //构造SLR语法分析表
-    for (auto iter =g.begin(); iter != g.end(); iter++) {
-        GenerateAnalyzeTable(*iter,0,i,p);
+    for (auto iter = g.begin(); iter != g.end(); iter++) {
+        GenerateAnalyzeTable(*iter, 0, i, p);
     }
-    cout << "end";
+    auto it = tokenlist.begin();
+    while (true) {
+        int curstate = StatusStack.top();
+        string input = keyword_map.at(it->first);
+        if (ActionTable[curstate][input].first == "S") {
+            StatusStack.push(ActionTable[curstate][input].second);
+            SymbolStack.push(input);
+            it++;
+        } else if (ActionTable[curstate][input].first == "R") {
+            Production t = p[ActionTable[curstate][input].second];
+            for (int iter = 0; iter < t.P.size(); iter++) {
+                SymbolStack.pop();
+                StatusStack.pop();
+            }
+            curstate = StatusStack.top();
+            int next = SearchCache(curstate, t.V);
+            StatusStack.push(next);
+            SymbolStack.push(t.V);
+            Display(t);
+        } else if (ActionTable[curstate][input].first == "acc") {
+            cout << "accepted!";
+            break;
+        } else {
+            cout << "err";
+            break;
+        }
+    }
 
 
     return 0;

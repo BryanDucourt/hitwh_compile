@@ -1,9 +1,10 @@
 P → D S
 D → L id ; D
+D → L id ;
 D → e
 L → int
 L → float
-S → id = E ;
+S → id = E
 S → if ( C ) S
 S → if ( C ) S else S
 S → while ( C ) S
@@ -12,11 +13,11 @@ C → E > E
 C → E < E
 C → E == E
 E → E + T
-E → E – T
+E → E - T
 E → T
 T → F
 T → T * F
 T → T / F
 F → ( E )
 F → id
-F → digits
+F → digit
